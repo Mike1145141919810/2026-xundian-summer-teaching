@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>把大象塞进冰箱 — 数字魔法师·第3讲</title>
+<style>
+/* ===== 全局 ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#4A90D9;--orange:#F5A623;--green:#7ED321;--red:#E94E3C;--purple:#9B59B6;
+  --bg-start:#FFF8F0;--bg-end:#E8F4FD;--text:#2C3E50;--text-light:#5D6D7E;
+  --card:#FFFFFF;--shadow:0 4px 20px rgba(0,0,0,0.08);--radius:20px;
+}
+html,body{width:100%;height:100%;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#1a1a2e;display:flex;align-items:center;justify-content:center;overflow:hidden;user-select:none}
+.preso{width:min(100vw,calc(100vh*16/9));height:min(100vh,calc(100vw*9/16));aspect-ratio:16/9;background:linear-gradient(135deg,var(--bg-start) 0%,var(--bg-end) 100%);border-radius:12px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.slides{width:100%;height:100%;position:relative}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4% 7%;opacity:0;transform:translateX(60px);transition:opacity .5s ease,transform .5s ease;pointer-events:none}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto;z-index:1}
+.slide.prev{opacity:0;transform:translateX(-60px)}
+
+.badge{display:inline-block;padding:6px 18px;border-radius:20px;font-size:clamp(14px,1.4vw,18px);font-weight:bold;color:white}
+.page-num{position:absolute;bottom:2%;right:3%;font-size:clamp(14px,1.2vw,16px);color:var(--text-light);opacity:.7}
+
+.stage-bar{position:absolute;bottom:1.5%;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10}
+.stage-dot{width:clamp(28px,2.5vw,40px);height:6px;border-radius:3px;background:#DDE3EA;transition:all .4s ease}
+.stage-dot.done{background:var(--green)}
+.stage-dot.current{background:var(--blue);width:clamp(42px,3.5vw,56px)}
+
+.nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:clamp(36px,3vw,48px);height:clamp(36px,3vw,48px);border-radius:50%;border:2px solid rgba(0,0,0,.12);background:rgba(255,255,255,.85);cursor:pointer;font-size:clamp(18px,1.6vw,24px);color:var(--text);display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:20;backdrop-filter:blur(4px)}
+.nav-btn:hover{background:white;border-color:var(--blue);color:var(--blue)}
+.nav-btn.prev{left:2%}.nav-btn.next{right:2%}
+
+.title-main{font-size:clamp(40px,5vw,72px);font-weight:900;color:var(--text);letter-spacing:4px;text-align:center}
+.title-main .hl{color:var(--blue)}
+.title-sub{font-size:clamp(16px,1.6vw,22px);color:var(--text-light);margin-top:12px;letter-spacing:2px}
+
+.concept-card{background:var(--card);border-radius:var(--radius);padding:clamp(20px,3vw,36px);box-shadow:var(--shadow);text-align:center;max-width:85%}
+.concept-card h2{font-size:clamp(28px,3vw,44px);color:var(--text);margin-bottom:16px}
+.concept-card p{font-size:clamp(20px,2vw,28px);color:var(--text-light);line-height:1.7}
+
+.reveal-area{font-size:clamp(24px,2.5vw,36px);color:var(--blue);font-weight:bold;cursor:pointer;text-align:center;padding:20px;border:3px dashed var(--blue);border-radius:var(--radius);transition:all .3s;min-width:280px}
+.reveal-area:hover{background:rgba(74,144,217,.05)}
+.reveal-area.revealed{border-style:solid;background:rgba(74,144,217,.08);cursor:default;color:var(--text)}
+
+.hint-tag{display:inline-block;background:#FFF3CD;color:#856404;padding:4px 14px;border-radius:12px;font-size:clamp(14px,1.3vw,18px);font-weight:bold;margin:4px}
+
+/* 压缩演示专用 */
+.compress-demo{display:flex;align-items:center;gap:clamp(12px,2vw,28px);flex-wrap:wrap;justify-content:center}
+.raw-chars{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;max-width:500px}
+.char-block{width:clamp(28px,3vw,44px);height:clamp(28px,3vw,44px);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:clamp(14px,1.5vw,20px)}
+.char-block.b{background:#E3F2FD;color:#1976D2}
+.char-block.w{background:#FFF3E0;color:#F57C00}
+.char-block.a{background:#E8F5E9;color:#388E3C}
+.char-block.random{background:#F3E5F5;color:#7B1FA2}
+
+.compress-arrow{font-size:clamp(24px,3vw,40px);color:var(--orange);font-weight:bold}
+.compress-result{background:#E8F5E9;padding:clamp(12px,2vw,20px) clamp(16px,2vw,28px);border-radius:16px;font-size:clamp(22px,2.5vw,34px);font-weight:bold;color:#2E7D32;border:3px solid var(--green)}
+
+/* 对比卡片 */
+.compare-row{display:flex;gap:clamp(16px,2vw,36px);flex-wrap:wrap;justify-content:center}
+.compare-card{flex:1;min-width:180px;max-width:340px;padding:clamp(16px,2vw,28px);border-radius:var(--radius);text-align:center}
+.compare-card.bad{background:#FFF5F5;border:3px solid var(--red)}
+.compare-card.good{background:#F1F8E9;border:3px solid var(--green)}
+.compare-card h3{font-size:clamp(18px,1.8vw,26px);margin-bottom:8px}
+
+/* 黑白格子 */
+.pixel-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;background:#ccc;padding:3px;border-radius:8px;width:clamp(140px,16vw,220px)}
+.pixel-cell{aspect-ratio:1;border-radius:3px}
+.pixel-cell.w{background:white}
+.pixel-cell.b{background:#333}
+
+/* 三要素卡片 */
+.trio{display:flex;gap:clamp(16px,2vw,40px);flex-wrap:wrap;justify-content:center}
+.trio-card{background:var(--card);border-radius:var(--radius);padding:clamp(24px,3vw,40px) clamp(18px,2vw,28px);text-align:center;box-shadow:var(--shadow);flex:1;min-width:140px;max-width:260px;border-top:6px solid var(--blue);transition:transform .3s}
+.trio-card:nth-child(2){border-top-color:var(--orange)}
+.trio-card:nth-child(3){border-top-color:var(--green)}
+.trio-card .big-emoji{font-size:clamp(40px,4.5vw,64px)}
+.trio-card h3{font-size:clamp(22px,2.2vw,32px);margin:8px 0;color:var(--text)}
+.trio-card p{font-size:clamp(16px,1.5vw,22px);color:var(--text-light);line-height:1.5}
+
+/* 练习题 */
+.exercise-table{width:100%;max-width:700px;border-collapse:collapse;font-size:clamp(16px,1.5vw,22px)}
+.exercise-table td,.exercise-table th{border:2px solid #E0E0E0;padding:clamp(8px,1vw,14px);text-align:center}
+.exercise-table th{background:var(--blue);color:white;font-weight:bold}
+.exercise-table .ans{color:var(--green);font-weight:bold}
+
+.btn{display:inline-block;padding:12px 32px;border-radius:30px;border:none;font-size:clamp(18px,1.6vw,24px);font-weight:bold;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-orange{background:var(--orange);color:white}
+.btn-orange:hover{background:#E49515;transform:scale(1.05)}
+</style>
+</head>
+<body>
+
+<div class="preso" id="preso">
+<div class="slides" id="slides">
+
+  <!-- ===== 1. 封面 ===== -->
+  <div class="slide active" data-stage="0">
+    <div style="font-size:clamp(56px,7vw,96px);margin-bottom:8px;">🐘</div>
+    <h1 class="title-main">把大象<span class="hl">塞进冰箱</span></h1>
+    <p class="title-sub">数字魔法师 · 第3讲</p>
+    <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <span class="badge" style="background:var(--blue);">📦 压缩</span>
+      <span class="badge" style="background:var(--orange);">🔢 游程编码</span>
+      <span class="badge" style="background:var(--green);">🧠 找规律</span>
+    </div>
+    <p style="margin-top:24px;font-size:clamp(14px,1.3vw,18px);color:var(--text-light);">
+      授课：李福洲（计算机学院）｜ 7月30日 ｜ 50分钟
+    </p>
+    <p style="margin-top:4px;font-size:clamp(13px,1.1vw,16px);color:var(--text-light);">
+      寻甸县雷锋希望小学 · 3-6年级
+    </p>
+    <span class="page-num">1 / 12</span>
+  </div>
+
+  <!-- ===== 2. 环节一：羽绒服引入 ===== -->
+  <div class="slide" data-stage="1">
+    <div class="concept-card" style="max-width:80%;">
+      <div style="font-size:clamp(56px,6vw,80px);margin-bottom:8px;">🧥</div>
+      <h2>这件羽绒服体积很大</h2>
+      <p style="margin-top:12px;">怎么让它变小？</p>
+    </div>
+    <div class="reveal-area" style="margin-top:16px;max-width:70%;" onclick="revealAnswer(this)">
+      点击揭晓答案 👆
+      <span style="display:none;">💡 塞进袋子！用力压！<br>挤出空气——衣服还是那件衣服，<br>只是去掉了里面的"空气" 🎈</span>
+    </div>
+    <span class="page-num">2 / 12</span>
+  </div>
+
+  <!-- ===== 3. 环节一：揭题 ===== -->
+  <div class="slide" data-stage="1">
+    <div style="font-size:clamp(44px,5vw,64px);margin-bottom:8px;">💻</div>
+    <h2 style="font-size:clamp(26px,2.8vw,42px);color:var(--text);text-align:center;">
+      计算机里存东西也一样！
+    </h2>
+    <p style="font-size:clamp(18px,1.8vw,26px);color:var(--text-light);text-align:center;margin-top:12px;">
+      有些文件里面很多"空气"<br>去掉它们，文件就变小了
+    </p>
+    <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;">
+      <span style="font-size:clamp(36px,4vw,56px);">🧥</span>
+      <span style="font-size:clamp(24px,2.5vw,36px);color:var(--orange);">→ 挤出空气 →</span>
+      <span style="font-size:clamp(36px,4vw,56px);">🎒</span>
+    </div>
+    <p style="font-size:clamp(20px,2vw,28px);color:var(--blue);font-weight:bold;margin-top:12px;text-align:center;">
+      这就是"压缩"！📦
+    </p>
+    <span class="page-num">3 / 12</span>
+  </div>
+
+  <!-- ===== 4. 环节二Step1：发现冗余 ===== -->
+  <div class="slide" data-stage="2">
+    <h2 style="font-size:clamp(24px,2.5vw,38px);color:var(--text);margin-bottom:8px;">
+      🔍 看一看：这两行有什么不同？
+    </h2>
+    <!-- 第一行 -->
+    <div style="background:#F5F5F5;border-radius:12px;padding:12px 20px;margin:8px 0;max-width:80%;">
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:4px;">第一行：</p>
+      <div class="raw-chars">
+        <span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span>
+        <span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span>
+        <span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span>
+        <span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span><span class="char-block b">A</span>
+      </div>
+    </div>
+    <!-- 第二行 -->
+    <div style="background:#F5F5F5;border-radius:12px;padding:12px 20px;margin:8px 0;max-width:80%;">
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:4px;">第二行：</p>
+      <div class="raw-chars">
+        <span class="char-block random">W</span><span class="char-block random">E</span><span class="char-block random">R</span><span class="char-block random">T</span><span class="char-block random">Y</span>
+        <span class="char-block random">U</span><span class="char-block random">I</span><span class="char-block random">O</span><span class="char-block random">P</span><span class="char-block random">A</span>
+        <span class="char-block random">S</span><span class="char-block random">D</span><span class="char-block random">F</span><span class="char-block random">G</span><span class="char-block random">H</span>
+        <span class="char-block random">J</span><span class="char-block random">K</span><span class="char-block random">L</span><span class="char-block random">Z</span><span class="char-block random">X</span>
+      </div>
+    </div>
+    <div class="reveal-area" style="margin-top:12px;max-width:65%;" onclick="revealAnswer(this)">
+      发现了什么？点击揭晓 👆
+      <span style="display:none;">第一行全是 A！<br>写"20个A"就行了！<br>第二行每个都不一样，没法偷懒 😅</span>
+    </div>
+    <span class="page-num">4 / 12</span>
+  </div>
+
+  <!-- ===== 5. 环节二Step1：核心思想 ===== -->
+  <div class="slide" data-stage="2">
+    <div class="concept-card" style="max-width:80%;">
+      <div style="font-size:clamp(48px,5vw,68px);margin-bottom:8px;">💡</div>
+      <h2>用"几个什么"<br>代替"一个一个列出来"</h2>
+      <p style="margin-top:12px;color:var(--blue);font-weight:bold;">
+        这就是压缩！
+      </p>
+    </div>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
+      <div style="text-align:center;">
+        <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);">原来</p>
+        <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;max-width:200px;">
+          <span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span><span class="char-block b" style="width:24px;height:24px;font-size:11px;">B</span>
+        </div>
+      </div>
+      <span style="font-size:clamp(24px,2.5vw,36px);color:var(--orange);">→</span>
+      <div style="text-align:center;">
+        <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);">压缩后</p>
+        <div style="background:#E8F5E9;padding:10px 18px;border-radius:12px;font-size:clamp(22px,2.5vw,34px);font-weight:bold;color:#2E7D32;border:3px solid var(--green);">
+          10B
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-size:clamp(18px,1.6vw,24px);color:var(--text);text-align:center;">
+      <b>"几个"</b> + <b>"什么"</b> = 游程编码（RLE）
+    </p>
+    <span class="page-num">5 / 12</span>
+  </div>
+
+  <!-- ===== 6. 环节二Step2：动手压缩 ===== -->
+  <div class="slide" data-stage="2">
+    <h2 style="font-size:clamp(22px,2.2vw,34px);color:var(--text);margin-bottom:4px;">
+      ✍️ 动手试试：压缩这条消息
+    </h2>
+
+    <!-- 原始 -->
+    <div style="margin:10px 0;">
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:4px;">📝 原始消息（17个字符）：</p>
+      <div class="raw-chars">
+        <span class="char-block b">B</span><span class="char-block b">B</span><span class="char-block b">B</span><span class="char-block b">B</span><span class="char-block b">B</span><span class="char-block b">B</span><span class="char-block b">B</span>
+        <span class="char-block w">W</span><span class="char-block w">W</span><span class="char-block w">W</span><span class="char-block w">W</span><span class="char-block w">W</span><span class="char-block w">W</span><span class="char-block w">W</span>
+        <span class="char-block a">A</span><span class="char-block a">A</span><span class="char-block a">A</span>
+      </div>
+    </div>
+
+    <!-- 压缩箭头 -->
+    <div style="font-size:clamp(28px,3vw,40px);margin:6px 0;color:var(--orange);">⬇️ 压缩 ⬇️</div>
+
+    <div class="reveal-area" style="max-width:80%;" onclick="revealAnswer(this)">
+      点击看答案 👆
+      <span style="display:none;">
+        <!-- 分组展示 -->
+        <div style="display:flex;gap:clamp(12px,2vw,24px);flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:12px;">
+          <div style="text-align:center;">
+            <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;max-width:120px;margin-bottom:6px;">
+              <span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span><span class="char-block b" style="width:20px;height:20px;font-size:10px;">B</span>
+            </div>
+            <span style="font-size:clamp(20px,2vw,28px);font-weight:bold;color:#1976D2;">= 7B</span>
+          </div>
+          <span style="font-size:clamp(18px,1.6vw,24px);">+</span>
+          <div style="text-align:center;">
+            <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;max-width:120px;margin-bottom:6px;">
+              <span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span><span class="char-block w" style="width:20px;height:20px;font-size:10px;">W</span>
+            </div>
+            <span style="font-size:clamp(20px,2vw,28px);font-weight:bold;color:#F57C00;">= 7W</span>
+          </div>
+          <span style="font-size:clamp(18px,1.6vw,24px);">+</span>
+          <div style="text-align:center;">
+            <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;max-width:60px;margin-bottom:6px;">
+              <span class="char-block a" style="width:20px;height:20px;font-size:10px;">A</span><span class="char-block a" style="width:20px;height:20px;font-size:10px;">A</span><span class="char-block a" style="width:20px;height:20px;font-size:10px;">A</span>
+            </div>
+            <span style="font-size:clamp(20px,2vw,28px);font-weight:bold;color:#388E3C;">= 3A</span>
+          </div>
+        </div>
+
+        <!-- 结果 -->
+        <div class="compress-result" style="margin-top:14px;">
+          ✅ 压缩结果：<b>7B 7W 3A</b>
+        </div>
+        <p style="font-size:clamp(16px,1.4vw,20px);color:var(--green);font-weight:bold;margin-top:8px;">
+          原来 17 个字符 → 现在 7 个字符！（含空格）
+        </p>
+      </span>
+    </div>
+    <span class="page-num">6 / 12</span>
+  </div>
+
+  <!-- ===== 7. 环节二Step2：练习题 ===== -->
+  <div class="slide" data-stage="2">
+    <h2 style="font-size:clamp(22px,2.2vw,34px);color:var(--text);margin-bottom:8px;">
+      📝 练一练
+    </h2>
+    <table class="exercise-table">
+      <thead>
+        <tr><th>原始</th><th>压缩结果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>G G G G G</td><td class="ans" style="color:transparent;">5G</td></tr>
+        <tr><td>Z Z Z Z Z Z Z Z Z Z</td><td class="ans" style="color:transparent;">10Z</td></tr>
+        <tr><td>X X X X X&nbsp;&nbsp;Y Y Y Y Y&nbsp;&nbsp;Z Z Z Z Z</td><td class="ans" style="color:transparent;">5X 5Y 5Z</td></tr>
+        <tr><td>A A A&nbsp;&nbsp;B B B B B&nbsp;&nbsp;C C C C C C C</td><td class="ans" style="color:transparent;">3A 5B 7C</td></tr>
+      </tbody>
+    </table>
+    <div class="reveal-area" style="margin-top:10px;max-width:55%;" onclick="revealAllAnswers(this)">
+      点击揭晓全部答案 👆
+      <span style="display:none;"></span>
+    </div>
+    <span class="page-num">7 / 12</span>
+  </div>
+
+  <!-- ===== 8. 环节二Step3：黑白图像 ===== -->
+  <div class="slide" data-stage="2">
+    <h2 style="font-size:clamp(22px,2.2vw,34px);color:var(--text);margin-bottom:4px;">
+      🖼️ 图片也能压缩！
+    </h2>
+    <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:8px;">
+      8×8 黑白格子 · 0=白 1=黑
+    </p>
+
+    <div style="display:flex;gap:clamp(16px,2.5vw,40px);align-items:center;flex-wrap:wrap;justify-content:center;">
+      <!-- 格子图 -->
+      <div class="pixel-grid">
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell b"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+        <span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span><span class="pixel-cell w"></span>
+      </div>
+
+      <div style="text-align:center;font-size:clamp(30px,3.5vw,50px);color:var(--orange);">❓</div>
+    </div>
+
+    <div class="reveal-area" style="margin-top:8px;max-width:75%;" onclick="revealAnswer(this)">
+      点击揭晓：怎么用"几个什么"表示这张图？👆
+      <span style="display:none;">
+        <div style="text-align:center;margin-bottom:8px;">
+          <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);">逐行压缩：</p>
+          <div style="font-size:clamp(14px,1.3vw,18px);background:#F5F5F5;padding:10px 16px;border-radius:8px;display:inline-block;text-align:left;line-height:1.7;">
+            8W<span style="color:#999;">（全是白）</span><br>
+            8W<br>
+            2W 4B 2W<br>
+            2W 4B 2W<br>
+            2W 4B 2W<br>
+            2W 4B 2W<br>
+            8W<br>
+            8W
+          </div>
+        </div>
+        <p style="font-size:clamp(15px,1.4vw,20px);color:var(--text);text-align:center;">
+          原来要写 <b>64 个数字</b>！<br>压缩后只需几个"几个什么" ✨<br><b>这就是图片压缩的原理！</b>
+        </p>
+      </span>
+    </div>
+    <span class="page-num">8 / 12</span>
+  </div>
+
+  <!-- ===== 9. 环节三：反例 ===== -->
+  <div class="slide" data-stage="3">
+    <h2 style="font-size:clamp(22px,2.2vw,34px);color:var(--text);margin-bottom:4px;">
+      ⚠️ 什么东西都能压缩吗？
+    </h2>
+    <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:8px;">
+      试试这条消息：
+    </p>
+
+    <div class="raw-chars" style="margin:8px 0;">
+      <span class="char-block random">W</span><span class="char-block random">E</span><span class="char-block random">R</span><span class="char-block random">T</span><span class="char-block random">Y</span>
+      <span class="char-block random">U</span><span class="char-block random">I</span><span class="char-block random">O</span><span class="char-block random">P</span>
+    </div>
+
+    <div class="compare-row" style="margin-top:12px;">
+      <div class="compare-card bad">
+        <h3 style="color:var(--red);">❌ 压缩后</h3>
+        <p style="font-size:clamp(18px,1.8vw,26px);font-weight:bold;color:var(--red);">
+          1W 1E 1R 1T 1Y<br>1U 1I 1O 1P
+        </p>
+        <p style="font-size:clamp(14px,1.3vw,18px);color:var(--red);margin-top:6px;">
+          反而更长了！😱
+        </p>
+      </div>
+    </div>
+
+    <div class="reveal-area" style="margin-top:10px;max-width:65%;" onclick="revealAnswer(this)">
+      为什么？点击揭晓 👆
+      <span style="display:none;">💡 没有重复！<br>每个字母都不一样，没法压缩。<br><br>就像你没法把一块石头变小——<br>它里面没有"空气" 🪨</span>
+    </div>
+    <span class="page-num">9 / 12</span>
+  </div>
+
+  <!-- ===== 10. 环节三：生活例子 ===== -->
+  <div class="slide" data-stage="3">
+    <h2 style="font-size:clamp(24px,2.5vw,38px);color:var(--text);margin-bottom:10px;">
+      🧥 vs 🪨：谁容易压缩？
+    </h2>
+
+    <div class="compare-row">
+      <div class="compare-card good">
+        <div style="font-size:clamp(44px,4.5vw,64px);">🧥</div>
+        <h3 style="color:var(--green);">容易压缩</h3>
+        <p style="font-size:clamp(16px,1.4vw,20px);color:var(--text);line-height:1.6;">
+          羽绒服（很多空气）<br>
+          大片同色的照片<br>
+          有很多空白的试卷
+        </p>
+      </div>
+      <div class="compare-card bad">
+        <div style="font-size:clamp(44px,4.5vw,64px);">🪨</div>
+        <h3 style="color:var(--red);">很难压缩</h3>
+        <p style="font-size:clamp(16px,1.4vw,20px);color:var(--text);line-height:1.6;">
+          石头（实心的）<br>
+          每个像素都不同的照片<br>
+          已经压缩过的文件
+        </p>
+      </div>
+    </div>
+
+    <div class="concept-card" style="margin-top:14px;max-width:75%;">
+      <p style="font-size:clamp(18px,1.8vw,26px);color:var(--blue);font-weight:bold;">
+        💡 压缩 = 找规律 + 去掉重复
+      </p>
+    </div>
+    <span class="page-num">10 / 12</span>
+  </div>
+
+  <!-- ===== 11. 环节四：压缩接力赛 ===== -->
+  <div class="slide" data-stage="4">
+    <h2 style="font-size:clamp(24px,2.5vw,38px);color:var(--text);margin-bottom:4px;">
+      🏆 压缩接力赛
+    </h2>
+    <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:10px;">
+      全班分 4 组，看哪组压得最短！
+    </p>
+
+    <div style="display:flex;gap:clamp(10px,1.5vw,20px);flex-wrap:wrap;justify-content:center;margin-bottom:10px;">
+      <div style="background:#FFFDE7;border:2px solid #F9A825;border-radius:14px;padding:12px 16px;text-align:center;min-width:160px;">
+        <p style="font-size:clamp(12px,1.1vw,14px);color:var(--text-light);">第1组</p>
+        <p style="font-size:clamp(14px,1.3vw,18px);font-weight:bold;">AAAAA BBBBB<br>CCCCC DDDDD</p>
+      </div>
+      <div style="background:#FFFDE7;border:2px solid #F9A825;border-radius:14px;padding:12px 16px;text-align:center;min-width:160px;">
+        <p style="font-size:clamp(12px,1.1vw,14px);color:var(--text-light);">第2组</p>
+        <p style="font-size:clamp(14px,1.3vw,18px);font-weight:bold;">XXXXXXXXXX<br>YY ZZZZZZZZZZ</p>
+      </div>
+      <div style="background:#FFFDE7;border:2px solid #F9A825;border-radius:14px;padding:12px 16px;text-align:center;min-width:160px;">
+        <p style="font-size:clamp(12px,1.1vw,14px);color:var(--text-light);">第3组</p>
+        <p style="font-size:clamp(14px,1.3vw,18px);font-weight:bold;">KKK KKK<br>KKK KKK</p>
+      </div>
+      <div style="background:#FFFDE7;border:2px solid #F9A825;border-radius:14px;padding:12px 16px;text-align:center;min-width:160px;">
+        <p style="font-size:clamp(12px,1.1vw,14px);color:var(--text-light);">第4组</p>
+        <p style="font-size:clamp(14px,1.3vw,18px);font-weight:bold;">0000000000<br>11111 0000000000<br>11111</p>
+      </div>
+    </div>
+
+    <div style="background:#F1F8E9;border-radius:14px;padding:12px 24px;max-width:75%;text-align:center;">
+      <p style="font-size:clamp(16px,1.5vw,22px);color:var(--text);">
+        ⚠️ <b>必须能还原！</b>不能丢信息<br>
+        <span style="color:var(--green);">→ 这就是"无损压缩"</span>
+      </p>
+    </div>
+    <span class="page-num">11 / 12</span>
+  </div>
+
+  <!-- ===== 12. 环节五：总结 ===== -->
+  <div class="slide" data-stage="5">
+    <h2 style="font-size:clamp(26px,2.8vw,42px);color:var(--text);margin-bottom:12px;">
+      🏆 今天学到了什么？
+    </h2>
+
+    <div class="trio">
+      <div class="trio-card">
+        <div class="big-emoji">📦</div>
+        <h3>压缩</h3>
+        <p>去掉重复<br>用更少的字符<br>表达同样的信息</p>
+      </div>
+      <div class="trio-card">
+        <div class="big-emoji">🔢</div>
+        <h3>游程编码</h3>
+        <p>"几个什么"<br>最简单的<br>压缩方法</p>
+      </div>
+      <div class="trio-card">
+        <div class="big-emoji">⚠️</div>
+        <h3>有前提</h3>
+        <p>没有规律的东西<br>不好压缩<br>需要找到重复</p>
+      </div>
+    </div>
+
+    <div class="concept-card" style="margin-top:16px;max-width:80%;">
+      <p style="font-size:clamp(18px,1.8vw,26px);color:var(--text);line-height:1.6;">
+        你手机里的照片、视频、音乐<br>全都是压缩过的！<br>不然手机根本存不下 📱
+      </p>
+    </div>
+    <span class="page-num">12 / 12</span>
+  </div>
+
+</div><!-- /slides -->
+
+<button class="nav-btn prev" onclick="goSlide(-1)" title="上一页（←键）">◀</button>
+<button class="nav-btn next" onclick="goSlide(1)" title="下一页（→键）">▶</button>
+
+<div class="stage-bar" id="stageBar">
+  <div class="stage-dot"></div>
+  <div class="stage-dot"></div>
+  <div class="stage-dot"></div>
+  <div class="stage-dot"></div>
+  <div class="stage-dot"></div>
+</div>
+</div><!-- /preso -->
+
+<script>
+// ===== 翻页系统 =====
+let currentSlide=0;
+const slides=document.querySelectorAll('.slide');
+const totalSlides=slides.length;
+const stageDots=document.querySelectorAll('.stage-dot');
+
+function goSlide(delta){
+  const newIdx=currentSlide+delta;
+  if(newIdx<0||newIdx>=totalSlides)return;
+  slides.forEach(s=>s.classList.remove('active','prev'));
+  slides[newIdx].classList.add('active');
+  if(delta>0)slides[currentSlide].classList.add('prev');
+  currentSlide=newIdx;
+  updateStageBar();
+}
+
+function updateStageBar(){
+  const stage=parseInt(slides[currentSlide].dataset.stage)||0;
+  stageDots.forEach((dot,i)=>{
+    dot.classList.remove('done','current');
+    if(i<stage)dot.classList.add('done');
+    if(i===stage)dot.classList.add('current');
+  });
+}
+
+// 键盘：优先揭示，再翻页
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){
+    e.preventDefault();
+    const activeSlide=slides[currentSlide];
+    const unrevealed=activeSlide.querySelector('.reveal-area:not(.revealed)');
+    if(unrevealed){
+      // 触发该元素的点击事件（支持 revealAnswer / revealAllAnswers 等自定义函数）
+      unrevealed.click();
+    }else{goSlide(1);}
+  }else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){
+    e.preventDefault();
+    goSlide(-1);
+  }
+});
+
+// 触摸滑动
+let touchStartX=0;
+document.addEventListener('touchstart',(e)=>{touchStartX=e.touches[0].clientX;});
+document.addEventListener('touchend',(e)=>{
+  const diff=touchStartX-e.changedTouches[0].clientX;
+  if(Math.abs(diff)>50)goSlide(diff>0?1:-1);
+});
+
+// 点击揭示
+function revealAnswer(el){
+  if(el.classList.contains('revealed'))return;
+  el.classList.add('revealed');
+  const hint=el.querySelector('span');
+  if(hint)hint.style.display='block';
+}
+
+function revealAllAnswers(el){
+  if(el.classList.contains('revealed'))return;
+  el.classList.add('revealed');
+  const hint=el.querySelector('span');
+  if(hint)hint.style.display='block';
+  // 显示表格中所有隐藏的答案
+  const table=el.parentElement.querySelector('.exercise-table');
+  if(table){
+    table.querySelectorAll('.ans').forEach(td=>td.style.color='');
+  }
+}
+
+updateStageBar();
+</script>
+
+</body>
+</html>

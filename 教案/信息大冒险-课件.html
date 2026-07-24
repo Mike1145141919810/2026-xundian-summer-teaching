@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>信息大冒险 — 数字魔法师·第4讲</title>
+<style>
+/* ===== 全局重置与基础样式 ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --blue: #4A90D9;
+  --orange: #F5A623;
+  --green: #7ED321;
+  --red: #E94E3C;
+  --purple: #9B59B6;
+  --bg-start: #FFF8F0;
+  --bg-end: #E8F4FD;
+  --text: #2C3E50;
+  --text-light: #5D6D7E;
+  --card: #FFFFFF;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --radius: 20px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  background: #1a1a2e;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ===== 16:9 容器 ===== */
+.preso {
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-end) 100%);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+/* ===== 幻灯片容器 ===== */
+.slides { width: 100%; height: 100%; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 5% 8%;
+  opacity: 0; transform: translateX(60px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
+}
+.slide.active {
+  opacity: 1; transform: translateX(0);
+  pointer-events: auto;
+  z-index: 1;
+}
+.slide.prev { opacity: 0; transform: translateX(-60px); }
+
+/* ===== 装饰元素 ===== */
+.deco-cloud {
+  position: absolute; background: white;
+  border-radius: 50%; opacity: 0.6;
+  animation: floatCloud 12s ease-in-out infinite;
+}
+.deco-cloud::before, .deco-cloud::after {
+  content: ''; position: absolute; background: white; border-radius: 50%;
+}
+@keyframes floatCloud {
+  0%,100% { transform: translateX(0); }
+  50% { transform: translateX(20px); }
+}
+
+/* ===== 公共组件 ===== */
+.badge {
+  display: inline-block;
+  padding: 6px 18px; border-radius: 20px;
+  font-size: clamp(14px, 1.4vw, 18px);
+  font-weight: bold; color: white;
+}
+
+.page-num {
+  position: absolute; bottom: 2%; right: 3%;
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: var(--text-light); opacity: 0.7;
+}
+
+.stage-bar {
+  position: absolute; bottom: 1.5%; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; z-index: 10;
+}
+.stage-dot {
+  width: clamp(28px, 2.5vw, 40px); height: 6px;
+  border-radius: 3px; background: #DDE3EA;
+  transition: all 0.4s ease;
+}
+.stage-dot.done { background: var(--green); }
+.stage-dot.current { background: var(--blue); width: clamp(42px, 3.5vw, 56px); }
+
+/* ===== 导航按钮 ===== */
+.nav-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: clamp(36px, 3vw, 48px); height: clamp(36px, 3vw, 48px);
+  border-radius: 50%; border: 2px solid rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.85); cursor: pointer;
+  font-size: clamp(18px, 1.6vw, 24px); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; z-index: 20;
+  backdrop-filter: blur(4px);
+}
+.nav-btn:hover { background: white; border-color: var(--blue); color: var(--blue); }
+.nav-btn.prev { left: 2%; }
+.nav-btn.next { right: 2%; }
+
+/* ===== 封面页 ===== */
+.title-main {
+  font-size: clamp(40px, 5vw, 72px);
+  font-weight: 900; color: var(--text);
+  letter-spacing: 4px; text-align: center;
+}
+.title-main .hl { color: var(--blue); }
+.title-sub {
+  font-size: clamp(16px, 1.6vw, 22px);
+  color: var(--text-light); margin-top: 12px;
+  letter-spacing: 2px;
+}
+
+/* ===== 概念卡片 ===== */
+.concept-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: clamp(20px, 3vw, 36px);
+  box-shadow: var(--shadow); text-align: center;
+  max-width: 85%;
+}
+.concept-card h2 {
+  font-size: clamp(28px, 3vw, 44px);
+  color: var(--text); margin-bottom: 16px;
+}
+.concept-card p {
+  font-size: clamp(20px, 2vw, 28px);
+  color: var(--text-light); line-height: 1.7;
+}
+
+/* ===== 角色/路线图 ===== */
+.route-diagram {
+  display: flex; align-items: center; gap: clamp(8px, 1.5vw, 24px);
+  flex-wrap: wrap; justify-content: center;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: bold;
+}
+.route-node {
+  background: var(--card); border: 3px solid var(--blue);
+  border-radius: 16px; padding: 14px 22px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow);
+  min-width: clamp(80px, 10vw, 130px);
+}
+.route-node .emoji { font-size: clamp(28px, 3vw, 44px); }
+.route-node .label { font-size: clamp(14px, 1.4vw, 20px); color: var(--text); }
+.route-arrow {
+  font-size: clamp(20px, 2.2vw, 32px); color: var(--orange);
+}
+
+/* ===== 三要素卡片 ===== */
+.trio {
+  display: flex; gap: clamp(16px, 2vw, 40px);
+  flex-wrap: wrap; justify-content: center;
+}
+.trio-card {
+  background: var(--card); border-radius: var(--radius);
+  padding: clamp(24px, 3vw, 40px) clamp(18px, 2vw, 28px);
+  text-align: center; box-shadow: var(--shadow);
+  flex: 1; min-width: 140px; max-width: 260px;
+  border-top: 6px solid var(--blue);
+  transition: transform 0.3s;
+}
+.trio-card:nth-child(2) { border-top-color: var(--orange); }
+.trio-card:nth-child(3) { border-top-color: var(--green); }
+.trio-card .big-emoji { font-size: clamp(40px, 4.5vw, 64px); }
+.trio-card h3 { font-size: clamp(22px, 2.2vw, 32px); margin: 8px 0; color: var(--text); }
+.trio-card p  { font-size: clamp(16px, 1.5vw, 22px); color: var(--text-light); line-height: 1.5; }
+
+/* ===== 分包动画区域 ===== */
+.packet-stage {
+  display: flex; align-items: center; gap: clamp(8px, 1.5vw, 20px);
+  flex-wrap: wrap; justify-content: center; margin: 20px 0;
+}
+.packet {
+  width: clamp(60px, 7vw, 100px); height: clamp(72px, 8vw, 120px);
+  background: #FFF3E0; border: 3px dashed var(--orange);
+  border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: clamp(12px, 1.2vw, 16px); font-weight: bold;
+  color: var(--orange); gap: 4px;
+  animation: packetBob 1.5s ease-in-out infinite;
+}
+.packet:nth-child(2) { animation-delay: 0.2s; }
+.packet:nth-child(3) { animation-delay: 0.4s; }
+.packet:nth-child(4) { animation-delay: 0.6s; }
+.packet.lost { opacity: 0.2; border-color: var(--red); background: #FDEAEA; animation: none; }
+.packet.dup { border-color: var(--purple); background: #F3E5F5; }
+@keyframes packetBob {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ===== 故障演示 ===== */
+.fault-box {
+  background: #FFF5F5; border: 2px solid var(--red);
+  border-radius: var(--radius); padding: clamp(14px, 2vw, 24px);
+  text-align: center; margin: 12px 0;
+}
+.fault-box h3 {
+  font-size: clamp(20px, 2vw, 30px); color: var(--red);
+  margin-bottom: 8px;
+}
+
+/* ===== 拓扑图 ===== */
+.topo {
+  display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.5vw, 20px);
+  font-size: clamp(16px, 1.6vw, 24px); font-weight: bold;
+}
+.topo-row {
+  display: flex; align-items: center; gap: clamp(10px, 2vw, 30px);
+}
+.topo-node {
+  background: var(--card); border-radius: 14px; padding: 14px 20px;
+  border: 3px solid var(--blue); text-align: center;
+  box-shadow: var(--shadow); min-width: clamp(70px, 9vw, 120px);
+}
+.topo-node.route { border-color: var(--orange); }
+.topo-arrow { color: var(--orange); font-size: clamp(18px, 2vw, 28px); }
+.topo-arrow.down { transform: rotate(90deg); }
+
+/* ===== 计时器 ===== */
+.timer-display {
+  font-size: clamp(72px, 10vw, 140px); font-weight: 900;
+  color: var(--blue); font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+  letter-spacing: 8px;
+}
+.timer-display.warning { color: var(--orange); animation: pulse 0.6s ease-in-out infinite; }
+.timer-display.danger { color: var(--red); animation: pulse 0.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== 按钮 ===== */
+.btn {
+  display: inline-block; padding: 12px 32px;
+  border-radius: 30px; border: none;
+  font-size: clamp(18px, 1.6vw, 24px); font-weight: bold;
+  cursor: pointer; transition: all 0.2s;
+  font-family: inherit;
+}
+.btn-blue { background: var(--blue); color: white; }
+.btn-blue:hover { background: #3A7BC8; transform: scale(1.05); }
+.btn-orange { background: var(--orange); color: white; }
+.btn-orange:hover { background: #E49515; transform: scale(1.05); }
+.btn-red { background: var(--red); color: white; }
+.btn-outline {
+  background: white; color: var(--blue);
+  border: 2px solid var(--blue);
+}
+
+/* ===== 点击揭示 ===== */
+.reveal-area {
+  font-size: clamp(24px, 2.5vw, 36px); color: var(--blue);
+  font-weight: bold; cursor: pointer; text-align: center;
+  padding: 20px; border: 3px dashed var(--blue);
+  border-radius: var(--radius); transition: all 0.3s;
+  min-width: 300px;
+}
+.reveal-area:hover { background: rgba(74,144,217,0.05); }
+.reveal-area.revealed {
+  border-style: solid; background: rgba(74,144,217,0.08);
+  cursor: default; color: var(--text);
+}
+
+/* ===== 提示浮层 ===== */
+.hint-tag {
+  display: inline-block; background: #FFF3CD;
+  color: #856404; padding: 4px 14px;
+  border-radius: 12px; font-size: clamp(14px, 1.3vw, 18px);
+  font-weight: bold; margin: 4px;
+}
+
+/* ===== 响应式微调 ===== */
+@media (max-width: 960px) {
+  .slide { padding: 4% 5%; }
+  .trio { gap: 10px; }
+  .trio-card { min-width: 100px; padding: 16px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="preso" id="preso">
+  <div class="slides" id="slides">
+
+    <!-- ========== 第1页：封面 ========== -->
+    <div class="slide active" data-stage="0">
+      <div style="font-size:clamp(60px,8vw,100px);margin-bottom:8px;">📡</div>
+      <h1 class="title-main">信息<span class="hl">大冒险</span></h1>
+      <p class="title-sub">数字魔法师 · 第4讲</p>
+      <div style="margin-top:30px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+        <span class="badge" style="background:var(--blue);">📦 分包</span>
+        <span class="badge" style="background:var(--orange);">🔢 编号</span>
+        <span class="badge" style="background:var(--green);">🔄 重传</span>
+      </div>
+      <p style="margin-top:28px;font-size:clamp(14px,1.3vw,18px);color:var(--text-light);">
+        授课：李福洲（计算机学院）｜ 7月30日 ｜ 50分钟
+      </p>
+      <p style="margin-top:6px;font-size:clamp(13px,1.1vw,16px);color:var(--text-light);">
+        寻甸县雷锋希望小学 · 3-6年级
+      </p>
+      <span class="page-num">1 / 13</span>
+    </div>
+
+    <!-- ========== 第2页：环节一——提问导入 ========== -->
+    <div class="slide" data-stage="1">
+      <div class="concept-card" style="max-width:80%;">
+        <div style="font-size:clamp(48px,5vw,72px);margin-bottom:12px;">💬</div>
+        <h2>你给朋友发一条微信，<br>点击发送 —— 对面马上就收到了</h2>
+        <p style="margin-top:18px;color:var(--orange);font-weight:bold;">
+          🤔 这中间到底发生了什么？
+        </p>
+      </div>
+      <div class="reveal-area" style="margin-top:20px;max-width:75%;" onclick="revealAnswer(this)">
+        点击揭晓答案 👆
+        <span style="display:none;">信息不是"一整条"飞过去的！<br>它被切成一小块一小块，<br>像快递一样一站一站转过去 🚚</span>
+      </div>
+      <span class="page-num">2 / 13</span>
+    </div>
+
+    <!-- ========== 第3页：揭题 ========== -->
+    <div class="slide" data-stage="1">
+      <div style="font-size:clamp(56px,6vw,88px);margin-bottom:16px;">📦✂️📦</div>
+      <h2 style="font-size:clamp(28px,3vw,44px);color:var(--text);text-align:center;">
+        信息不是一整条飞过去的
+      </h2>
+      <div style="display:flex;align-items:center;gap:16px;margin:20px 0;flex-wrap:wrap;justify-content:center;">
+        <div style="background:#FFF3E0;padding:16px 24px;border-radius:16px;font-size:clamp(18px,2vw,28px);font-weight:bold;color:var(--orange);">
+          📝 一整条消息
+        </div>
+        <span style="font-size:clamp(24px,2.5vw,36px);">➡️ ✂️ ➡️</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <div class="packet" style="width:clamp(50px,6vw,80px);height:clamp(60px,7vw,96px);margin:0;">📦<br>1/4</div>
+          <div class="packet" style="width:clamp(50px,6vw,80px);height:clamp(60px,7vw,96px);margin:0;">📦<br>2/4</div>
+          <div class="packet" style="width:clamp(50px,6vw,80px);height:clamp(60px,7vw,96px);margin:0;">📦<br>3/4</div>
+          <div class="packet" style="width:clamp(50px,6vw,80px);height:clamp(60px,7vw,96px);margin:0;">📦<br>4/4</div>
+        </div>
+      </div>
+      <p style="font-size:clamp(20px,2vw,28px);color:var(--text);text-align:center;margin-top:16px;">
+        切成小块，一站一站转过去<br>就像快递一样 📬
+      </p>
+      <p style="font-size:clamp(18px,1.8vw,24px);color:var(--blue);font-weight:bold;margin-top:12px;">
+        今天，我们来当快递员！🏃
+      </p>
+      <span class="page-num">3 / 13</span>
+    </div>
+
+    <!-- ========== 第4页：环节二——第一轮游戏规则 ========== -->
+    <div class="slide" data-stage="2">
+      <h2 style="font-size:clamp(28px,3vw,44px);color:var(--text);margin-bottom:8px;">
+        🎭 第一轮：直接传递
+      </h2>
+      <p style="font-size:clamp(16px,1.5vw,22px);color:var(--text-light);margin-bottom:16px;">
+        一个人拿着完整消息，从头走到尾
+      </p>
+      <div class="route-diagram">
+        <div class="route-node">
+          <span class="emoji">👦</span>
+          <span class="label">发送者</span>
+        </div>
+        <span class="route-arrow">→</span>
+        <div class="route-node" style="border-color:var(--orange);">
+          <span class="emoji">📡</span>
+          <span class="label">路由器1</span>
+        </div>
+        <span class="route-arrow">→</span>
+        <div class="route-node" style="border-color:var(--orange);">
+          <span class="emoji">📡</span>
+          <span class="label">路由器2</span>
+        </div>
+        <span class="route-arrow">→</span>
+        <div class="route-node" style="border-color:var(--green);">
+          <span class="emoji">👧</span>
+          <span class="label">接收者</span>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <span class="hint-tag">👀 观察员：记录用时</span>
+        <span class="hint-tag">📝 消息："下午三点操场集合"</span>
+      </div>
+      <span class="page-num">4 / 13</span>
+    </div>
+
+    <!-- ========== 第5页：环节二——讨论 ========== -->
+    <div class="slide" data-stage="2">
+      <div class="concept-card">
+        <div style="font-size:clamp(52px,5.5vw,80px);margin-bottom:12px;">⚠️</div>
+        <h2>如果路由器1 "死机"了<br>（退出游戏）</h2>
+        <p style="margin-top:16px;color:var(--red);font-weight:bold;">
+          消息怎么办？
+        </p>
+      </div>
+      <div class="reveal-area" style="margin-top:18px;max-width:70%;" onclick="revealAnswer(this)">
+        点击揭晓答案 👆
+        <span style="display:none;">💡 换一条路走！<br>网络有备用路径 ——<br>这条不通，走那条 🛤️</span>
+      </div>
+      <span class="page-num">5 / 13</span>
+    </div>
+
+    <!-- ========== 第6页：环节三——引入分包 ========== -->
+    <div class="slide" data-stage="3">
+      <div class="concept-card" style="max-width:80%;">
+        <div style="font-size:clamp(44px,4.5vw,64px);margin-bottom:8px;">📜</div>
+        <h2>如果消息很长很长……</h2>
+        <p style="margin-top:12px;">
+          一个快递员拿着走，<br>万一 <span style="color:var(--red);font-weight:bold;">丢了</span> 怎么办？
+        </p>
+        <p style="margin-top:8px;color:var(--red);font-weight:bold;font-size:clamp(20px,2vw,28px);">
+          全都没了！😱
+        </p>
+      </div>
+      <div class="reveal-area" style="margin-top:16px;max-width:70%;" onclick="revealAnswer(this)">
+        点击揭晓解决方案 👆
+        <span style="display:none;">💡 把大消息切成小块！<br>每块加上编号 1/4, 2/4, 3/4, 4/4<br>丢了只丢一小块，重发那一块就行 ✨</span>
+      </div>
+      <span class="page-num">6 / 13</span>
+    </div>
+
+    <!-- ========== 第7页：分包演示 ========== -->
+    <div class="slide" data-stage="3">
+      <h2 style="font-size:clamp(26px,2.8vw,40px);color:var(--text);margin-bottom:4px;">
+        ✂️ 分包演示
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:10px;">
+        长消息 → 切成4段 → 装进信封 → 标上编号
+      </p>
+
+      <!-- 原消息 -->
+      <div style="background:#FFFDE7;border:2px solid #F9A825;border-radius:12px;padding:10px 20px;font-size:clamp(16px,1.5vw,22px);margin-bottom:12px;text-align:center;">
+        📝 "明天上午九点在教学楼门口集合带上笔记本和水杯"
+      </div>
+
+      <!-- 剪刀动画 -->
+      <div style="font-size:clamp(28px,3vw,40px);margin:6px 0;">✂️ ⬇️ ✂️</div>
+
+      <!-- 4个数据包 -->
+      <div class="packet-stage">
+        <div class="packet">
+          <span style="font-size:clamp(18px,2vw,28px);">📦</span>
+          <span>1/4</span>
+          <span style="font-size:10px;color:#999;">明天上午…</span>
+        </div>
+        <div class="packet">
+          <span style="font-size:clamp(18px,2vw,28px);">📦</span>
+          <span>2/4</span>
+          <span style="font-size:10px;color:#999;">九点在教…</span>
+        </div>
+        <div class="packet">
+          <span style="font-size:clamp(18px,2vw,28px);">📦</span>
+          <span>3/4</span>
+          <span style="font-size:10px;color:#999;">学楼门口…</span>
+        </div>
+        <div class="packet">
+          <span style="font-size:clamp(18px,2vw,28px);">📦</span>
+          <span>4/4</span>
+          <span style="font-size:10px;color:#999;">集合带上…</span>
+        </div>
+      </div>
+
+      <p style="font-size:clamp(16px,1.4vw,20px);color:var(--blue);font-weight:bold;margin-top:8px;">
+        4个快递员同时出发，可以走不同的路！🏃‍♂️🏃‍♀️🏃🏃‍♂️
+      </p>
+      <span class="page-num">7 / 13</span>
+    </div>
+
+    <!-- ========== 第8页：故障场景1——丢包 ========== -->
+    <div class="slide" data-stage="3">
+      <h2 style="font-size:clamp(26px,2.8vw,40px);color:var(--text);margin-bottom:4px;">
+        ⚡ 故障场景一：丢包
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:12px;">
+        老师偷偷拿走3号包……
+      </p>
+
+      <div class="packet-stage">
+        <div class="packet">📦<br>1/4<br><span style="font-size:10px;">✅ 到达</span></div>
+        <div class="packet">📦<br>2/4<br><span style="font-size:10px;">✅ 到达</span></div>
+        <div class="packet lost">📦<br>3/4<br><span style="font-size:10px;color:var(--red);">❌ 丢失！</span></div>
+        <div class="packet">📦<br>4/4<br><span style="font-size:10px;">✅ 到达</span></div>
+      </div>
+
+      <div class="fault-box" style="max-width:70%;">
+        <h3>😟 接收者发现：少了3号包！</h3>
+        <p style="font-size:clamp(18px,1.8vw,26px);color:var(--text);">
+          接收者大喊：<br>
+          <span style="color:var(--red);font-weight:bold;">"3号包没到，请重发！"</span>
+        </p>
+        <p style="font-size:clamp(14px,1.3vw,18px);color:var(--green);margin-top:6px;">
+          ✅ 发送者重新发送3号包 → 搞定！
+        </p>
+      </div>
+      <span class="page-num">8 / 13</span>
+    </div>
+
+    <!-- ========== 第9页：故障场景2——乱序到达 ========== -->
+    <div class="slide" data-stage="3">
+      <h2 style="font-size:clamp(26px,2.8vw,40px);color:var(--text);margin-bottom:4px;">
+        ⚡ 故障场景二：乱序到达
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:12px;">
+        4个快递员速度不同，到达顺序乱七八糟……
+      </p>
+
+      <!-- 到达顺序 -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;">
+        <span style="font-size:clamp(16px,1.5vw,22px);">到达顺序：</span>
+        <span class="badge" style="background:var(--green);">第1个：1/4</span>
+        <span style="font-size:clamp(18px,1.6vw,24px);">→</span>
+        <span class="badge" style="background:var(--purple);">第2个：4/4</span>
+        <span style="font-size:clamp(18px,1.6vw,24px);">→</span>
+        <span class="badge" style="background:var(--orange);">第3个：2/4</span>
+        <span style="font-size:clamp(18px,1.6vw,24px);">→</span>
+        <span class="badge" style="background:var(--red);">第4个：3/4</span>
+      </div>
+
+      <!-- 乱序 vs 排序 -->
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;">
+        <div style="text-align:center;">
+          <p style="color:var(--red);font-weight:bold;font-size:clamp(14px,1.3vw,18px);">😵 收到的（乱序）</p>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+            <span class="badge" style="background:#999;">1/4</span>
+            <span class="badge" style="background:#999;">4/4</span>
+            <span class="badge" style="background:#999;">2/4</span>
+            <span class="badge" style="background:#999;">3/4</span>
+          </div>
+        </div>
+        <span style="font-size:clamp(24px,2.5vw,36px);">🔢 ➡️</span>
+        <div style="text-align:center;">
+          <p style="color:var(--green);font-weight:bold;font-size:clamp(14px,1.3vw,18px);">✅ 按编号重排</p>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+            <span class="badge" style="background:var(--green);">1/4</span>
+            <span class="badge" style="background:var(--green);">2/4</span>
+            <span class="badge" style="background:var(--green);">3/4</span>
+            <span class="badge" style="background:var(--green);">4/4</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fault-box" style="max-width:65%;margin-top:14px;">
+        <h3>💡 有编号就能重新排好！</h3>
+        <p style="font-size:clamp(16px,1.5vw,22px);color:var(--text);">1→2→3→4，按号排，不会乱</p>
+      </div>
+      <span class="page-num">9 / 13</span>
+    </div>
+
+    <!-- ========== 第10页：故障场景3——重复到达 ========== -->
+    <div class="slide" data-stage="3">
+      <h2 style="font-size:clamp(26px,2.8vw,40px);color:var(--text);margin-bottom:4px;">
+        ⚡ 故障场景三：重复到达
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:12px;">
+        同一个包被送了两次……
+      </p>
+
+      <div class="packet-stage">
+        <div class="packet">📦<br>1/4<br><span style="font-size:10px;">✅</span></div>
+        <div class="packet">📦<br>2/4<br><span style="font-size:10px;">✅</span></div>
+        <div class="packet dup">📦<br>3/4<br><span style="font-size:10px;">✅</span></div>
+        <div class="packet dup">📦<br>3/4<br><span style="font-size:10px;color:var(--purple);">⁉️ 又多一个</span></div>
+        <div class="packet">📦<br>4/4<br><span style="font-size:10px;">✅</span></div>
+      </div>
+
+      <div class="fault-box" style="max-width:65%;margin-top:12px;">
+        <h3>😅 收到两个 3/4 号包！</h3>
+        <p style="font-size:clamp(18px,1.8vw,26px);color:var(--text);">
+          接收者一看：<br>
+          <span style="color:var(--purple);font-weight:bold;">"3号已经有了，</span>
+          <span style="color:var(--red);font-weight:bold;">扔掉重复的！"</span>
+        </p>
+      </div>
+      <span class="page-num">10 / 13</span>
+    </div>
+
+    <!-- ========== 第11页：全班大游戏规则 ========== -->
+    <div class="slide" data-stage="4">
+      <h2 style="font-size:clamp(26px,2.8vw,40px);color:var(--text);margin-bottom:4px;">
+        🎮 全班大游戏：网络大冒险
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:10px;">
+        全班分成 4 个组
+      </p>
+
+      <!-- 拓扑图 -->
+      <div class="topo">
+        <!-- 第一行 -->
+        <div class="topo-row">
+          <div class="topo-node">
+            <span style="font-size:clamp(24px,2.5vw,36px);">👦👧</span><br>
+            <span style="font-weight:bold;">发送组</span><br>
+            <span style="font-size:clamp(10px,1vw,14px);color:var(--text-light);">拆分+编号+发出</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:clamp(40px,6vw,100px);font-size:clamp(24px,3vw,40px);color:var(--orange);padding:4px 0;">
+          <span>↓</span>
+          <span>↓</span>
+          <span>↓</span>
+        </div>
+        <!-- 第二行：路由组 -->
+        <div class="topo-row">
+          <div class="topo-node route">
+            <span style="font-size:clamp(24px,2.5vw,36px);">📡</span><br>
+            <span style="font-weight:bold;">路由组A</span><br>
+            <span style="font-size:clamp(10px,1vw,14px);color:var(--text-light);">转发/可丢包</span>
+          </div>
+          <div class="topo-node route">
+            <span style="font-size:clamp(24px,2.5vw,36px);">📡</span><br>
+            <span style="font-weight:bold;">路由组B</span><br>
+            <span style="font-size:clamp(10px,1vw,14px);color:var(--text-light);">转发/可丢包</span>
+          </div>
+          <div class="topo-node route">
+            <span style="font-size:clamp(24px,2.5vw,36px);">📡</span><br>
+            <span style="font-weight:bold;">路由组C</span><br>
+            <span style="font-size:clamp(10px,1vw,14px);color:var(--text-light);">转发/可丢包</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center;gap:clamp(40px,6vw,100px);font-size:clamp(24px,3vw,40px);color:var(--orange);padding:4px 0;">
+          <span>↓</span>
+          <span>↓</span>
+          <span>↓</span>
+        </div>
+        <!-- 第三行 -->
+        <div class="topo-row">
+          <div class="topo-node" style="border-color:var(--green);">
+            <span style="font-size:clamp(24px,2.5vw,36px);">👧👦</span><br>
+            <span style="font-weight:bold;">接收组</span><br>
+            <span style="font-size:clamp(10px,1vw,14px);color:var(--text-light);">接收+排序+还原</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <span class="hint-tag">📦 最少分5个包</span>
+        <span class="hint-tag">🗑️ 路由最多丢2个</span>
+        <span class="hint-tag">⏱️ 路由可延迟</span>
+        <span class="hint-tag">📢 不完整就喊"重传编号X！"</span>
+      </div>
+      <span class="page-num">11 / 13</span>
+    </div>
+
+    <!-- ========== 第12页：计时器页 ========== -->
+    <div class="slide" data-stage="4">
+      <h2 style="font-size:clamp(24px,2.5vw,36px);color:var(--text);margin-bottom:4px;">
+        ⏱️ 游戏进行中……
+      </h2>
+      <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text-light);margin-bottom:8px;">
+        每轮约 5 分钟
+      </p>
+
+      <div class="timer-display" id="timer">5:00</div>
+
+      <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn btn-blue" onclick="startTimer(300)">▶ 5分钟</button>
+        <button class="btn btn-orange" onclick="startTimer(180)">▶ 3分钟</button>
+        <button class="btn btn-outline" onclick="startTimer(120)">▶ 2分钟</button>
+        <button class="btn btn-red" onclick="stopTimer()">⏹ 停止</button>
+        <button class="btn btn-outline" onclick="resetTimer(300)">↺ 重置</button>
+      </div>
+
+      <div style="margin-top:14px;padding:12px 20px;background:#FFFDE7;border-radius:12px;max-width:75%;text-align:center;">
+        <p style="font-size:clamp(14px,1.3vw,18px);color:var(--text);">
+          📋 <b>规则提醒：</b>路由组可以随机丢包（最多2个）<br>
+          接收组发现不完整就喊 <span style="color:var(--red);font-weight:bold;">"重传编号X！"</span>
+        </p>
+      </div>
+      <span class="page-num">12 / 13</span>
+    </div>
+
+    <!-- ========== 第13页：总结 ========== -->
+    <div class="slide" data-stage="5">
+      <h2 style="font-size:clamp(28px,3vw,44px);color:var(--text);margin-bottom:16px;">
+        🏆 信息传输三要素
+      </h2>
+
+      <div class="trio">
+        <div class="trio-card">
+          <div class="big-emoji">📦</div>
+          <h3>分包</h3>
+          <p>把大消息<br>切成小块</p>
+        </div>
+        <div class="trio-card">
+          <div class="big-emoji">🔢</div>
+          <h3>编号</h3>
+          <p>每块标上<br>"第几块/共几块"</p>
+        </div>
+        <div class="trio-card">
+          <div class="big-emoji">🔄</div>
+          <h3>重传</h3>
+          <p>丢了就喊<br>"再来一次！"</p>
+        </div>
+      </div>
+
+      <div class="concept-card" style="margin-top:20px;max-width:80%;">
+        <p style="font-size:clamp(18px,1.8vw,26px);color:var(--text);line-height:1.6;">
+          你每发一条微信，<br>背后就有无数个"快递员"<br>在帮你传这些小包 📬
+        </p>
+        <p style="font-size:clamp(16px,1.5vw,22px);color:var(--blue);font-weight:bold;margin-top:8px;">
+          ✨ 这就是互联网的运作方式！
+        </p>
+      </div>
+
+      <span class="page-num">13 / 13</span>
+    </div>
+
+  </div><!-- /slides -->
+
+  <!-- 导航按钮 -->
+  <button class="nav-btn prev" onclick="goSlide(-1)" title="上一页（←键）">◀</button>
+  <button class="nav-btn next" onclick="goSlide(1)" title="下一页（→键）">▶</button>
+
+  <!-- 环节进度条 -->
+  <div class="stage-bar" id="stageBar">
+    <div class="stage-dot"></div>
+    <div class="stage-dot"></div>
+    <div class="stage-dot"></div>
+    <div class="stage-dot"></div>
+    <div class="stage-dot"></div>
+  </div>
+</div><!-- /preso -->
+
+<script>
+// ===== 翻页系统 =====
+let currentSlide = 0;
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+const stageDots = document.querySelectorAll('.stage-dot');
+
+function goSlide(delta) {
+  const newIdx = currentSlide + delta;
+  if (newIdx < 0 || newIdx >= totalSlides) return;
+
+  // 清除所有 slide 的状态
+  slides.forEach(s => s.classList.remove('active', 'prev'));
+
+  // 设置新页为 active
+  slides[newIdx].classList.add('active');
+
+  // 旧页根据方向设置退出动画
+  if (delta > 0) {
+    slides[currentSlide].classList.add('prev'); // 向左退出
+  }
+  // 向后翻时旧页自然淡出（默认 translateX(60px) 即向右退出）
+
+  currentSlide = newIdx;
+  updateStageBar();
+}
+
+function updateStageBar() {
+  const stage = parseInt(slides[currentSlide].dataset.stage) || 0;
+  stageDots.forEach((dot, i) => {
+    dot.classList.remove('done', 'current');
+    if (i < stage) dot.classList.add('done');
+    if (i === stage) dot.classList.add('current');
+  });
+}
+
+// 键盘：优先揭示内容，再翻页
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+    e.preventDefault();
+    // 先检查当前页是否有未揭示的内容
+    const activeSlide = slides[currentSlide];
+    const unrevealed = activeSlide.querySelector('.reveal-area:not(.revealed)');
+    if (unrevealed) {
+      revealAnswer(unrevealed);
+    } else {
+      goSlide(1);
+    }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    goSlide(-1);
+  }
+});
+
+// 触摸滑动
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) goSlide(diff > 0 ? 1 : -1);
+});
+
+// ===== 点击揭示 =====
+function revealAnswer(el) {
+  if (el.classList.contains('revealed')) return;
+  el.classList.add('revealed');
+  const hint = el.querySelector('span');
+  if (hint) hint.style.display = 'block';
+}
+
+// ===== 计时器 =====
+let timerInterval = null;
+let timerSeconds = 0;
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  const display = document.getElementById('timer');
+  display.textContent = m + ':' + String(s).padStart(2, '0');
+
+  display.classList.remove('warning', 'danger');
+  if (timerSeconds <= 30) display.classList.add('danger');
+  else if (timerSeconds <= 60) display.classList.add('warning');
+}
+
+function startTimer(seconds) {
+  stopTimer();
+  timerSeconds = seconds;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    if (timerSeconds > 0) {
+      timerSeconds--;
+      updateTimerDisplay();
+    } else {
+      stopTimer();
+      // 时间到音效模拟：闪烁
+      const display = document.getElementById('timer');
+      display.classList.add('danger');
+      setTimeout(() => display.classList.remove('danger'), 2000);
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function resetTimer(seconds) {
+  stopTimer();
+  timerSeconds = seconds;
+  updateTimerDisplay();
+  document.getElementById('timer').classList.remove('warning', 'danger');
+}
+
+// ===== 初始化 =====
+updateStageBar();
+</script>
+
+</body>
+</html>
